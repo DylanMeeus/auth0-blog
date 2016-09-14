@@ -347,6 +347,120 @@ One of the advantages of Spring Boot lies with microservices. Microservices are 
 In our example, we have created a REST-service that is self-contained. We could focus ourselves on writing just the REST-api that deals with logging in and retrieving a list of users. We could then create another Spring Boot project for another part of our application (say, for example, a JSP application or desktop client), if we would be so inclined to do. These Spring Boot applications could then communicate with each other via HTTP, but would be largely independent of each other. This all makes Spring Boot a popular choice in modern architectures, and one worth checking out!
 
 
+## Aside: Using spring-boot with Auth0
+Auth0 issues [JSON Web Tokens](http://jwt.io/introduction) on every login for your users. This means that you can have a solid [identity infrastructure](https://auth0.com/docs/identityproviders), including [single sign-on](https://auth0.com/docs/sso/single-sign-on), user management, support for social (Facebook, GitHub, Twitter, etc.), enterprise (Active Directory, LDAP, SAML, etc.), and your own database of users with just a few lines of code.
+
+If you haven't done so yet, this is a good time to sign up for a [free Auth0 account](https://auth0.com/signup), after which we can take a look at how we need to alter our previous example to allow for Auth0 to manage our login. 
+
+### Changes to our project
+
+Since we are now using Auth0, we don't need to manage the JWTs ourselves anymore, so that package we can ignore. In addition, the _WebSecurityConfig_ will be replaced by an _AppConfig_. All the changes that are required can also be found on [github](https://github.com/DylanMeeus/springboot_jwt_blog/tree/Auth0_Integration). As we have our account set up and an idea of what to do, let's jump right in! 
+
+Under `src/main/resources`, create a new file called `auth0.properties`. This file needs to be populated with the data from your Auth0 app. By default when creating a new account you will have a "Default App", which you could use for this. These are the important parts of that config, keep in mind to replace the values with the values of your application. Specifically you'll want to update `domain`, `issuer`, `clientId`, `clientSecret`. The other config can remain as the config below.
+
+```
+auth0.domain:_your_domain.auth0.com
+auth0.issuer:https://_you_as_issuer
+auth0.clientId:client_id
+auth0.clientSecret:super_secret
+auth0.securedRoute: NOT_USED
+auth0.base64EncodedSecret: true
+auth0.authorityStrategy: ROLES
+auth0.defaultAuth0ApiSecurityEnabled: false
+auth0.signingAlgorithm: HS256
+```
+
+Before we jump into the code, we need to add some dependencies to maven. 
+
+```
+       <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>auth0</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+
+		<dependency>
+			<groupId>com.auth0</groupId>
+			<artifactId>auth0-spring-security-api</artifactId>
+			<version>0.0.3</version>
+		</dependency>
+ ```
+
+Once we have this, let's create a new controller called `AuthUserController`, which will be the controller containing the REST-endpoints we wish to expose. This is similar to our `UserController`. We have two endpoints here: _oldUsers_ and _Auth0Users_. We'll expose the _oldUsers_ to everyone, but require authentication for all other endpoints. 
+
+```
+@RestController
+public class AuthUserController {
+
+    @RequestMapping("/oldUsers") 
+    public @ResponseBody
+    String getUsers(){
+        return "{\"users\":[{\"firstname\":\"Richard\", \"lastname\":\"Feynman\"}," +
+                "{\"firstname\":\"Marie\",\"lastname\":\"Curie\"}]}";
+    }
+
+    @RequestMapping("/Auth0Users")
+    public @ResponseBody
+    String getAuthUsers(){
+        return "{\"users\":[{\"firstname\":\"Isaac\", \"lastname\":\"Newton\"}," +
+                "{\"firstname\":\"Ada\",\"lastname\":\"Lovelace\"}]}";
+    }
+}
+```
+
+Now that we have a new controller dealing with our new endpoints, and we have our properties set up to go, we just need to create a config for our endpoints, similar to have we created a _WebSecurityConfig_ earlier. In a new package `demo.config` we can create a class called `AppConfig`. The important part here is a method called `authorizeRequests`, which we can configure in a similar matter as the `WebSecurityConfig`. Keep in mind that the full code for this class is available on [github](https://github.com/DylanMeeus/springboot_jwt_blog/blob/Auth0_Integration/src/main/java/demo/config/AppConfig.java)
+
+```
+    @Override
+    protected void authorizeRequests(final HttpSecurity http) throws Exception {
+
+        http.authorizeRequests()
+                .antMatchers("/oldUsers").permitAll()
+                .anyRequest().authenticated();
+    }
+```
+
+The last major class we need to create is a class for our Auth0 configuration. we can create this in the `demo` package, so it is at the same level as our main class. In this class we will deal with some of the configuration for using the Auth0 APIs. 
+
+```
+   private final String clientid;
+    private final String domain;
+    private final Auth0 auth0;
+    private final AuthenticationAPIClient client;
+
+    public Auth0Client(String clientid, String domain) {
+        this.clientid = clientid;
+        this.domain = domain;
+        this.auth0 = new Auth0(clientid, domain);
+        this.client = this.auth0.newAuthenticationAPIClient();
+    }
+
+    public String getUsername(Auth0JWTToken token) {
+        final Request<UserProfile> request = client.tokenInfo(token.getJwt());
+        final UserProfile profile = request.execute();
+        return profile.getEmail();
+    }
+ ```
+
+We're almost ready now to test our application, but a few more minor changes need to be made. We can get rid of the _WebSecurityConfig_ (or comment out the logic in there), because we will be using our new _AppConfig_ here. Furthermore, we'll need to make a few more changes to our main class `DemoApplication`. 
+
+We want our `DemoApplication` class to find our properties, and to use the correct configuration for the endpoints. To achieve this we can add some annotations to the top of the class 
+
+```
+@PropertySources({
+	@PropertySource("classpath:auth0.properties")
+})
+@ComponentScan(basePackages = {"com.auth0.spring.security.api","demo.config","demo.controller"})
+```
+
+There we have it, this was all that was required to use Auth0 with spring-boot. We can jump into testing this application now, once again with postman or a tool like curl. When we try to issue a GET-request on `localhost:8080/oldUsers` we will be presented with a list of users, yet when we try the same on `localhost:8080/Auth0Users`, we will get a message saying that we are not authorized and thus can not access this endpoint. To get a JWT, you can go to the [Authentication API](https://auth0.com/docs/api/authentication#!#post--oauth-ro) and issue a POST-request on `oauth/ro`. _Make sure that you have some users set up if you want to use username-password authentication!_
+
+After doing this, we will get an `id_token` which we can pass in the header of our get-request, in a similar manner as to how we have done it before. Now if we query our endpoint again, we get a list of the Auth0Users. As we see, integrating Auth0 with spring-boot is an easy process!
+
+{% include tweet_quote.html quote_text="Integrating Auth0 with spring-boot is easy!" %}
+
+![getting Auth0Users](http://it-ca.net/auth0_images/auth0users.png)
+
 ## Conclusion
 
 Creating a project with Spring Boot makes development a lot easier. We can save a lot of time otherwise spend on dealing with configuration and deployment that are now taken care of for us. Adding a great deal of functionality to our project can be done by including another dependency in our pom.xml, and all this gets bundled into one self-contained, easily-deployed application. As you can tell from the start of this project, there is a lot more to explore with Spring Boot, [so what are you waiting for? ;-)](http://start.spring.io/)
