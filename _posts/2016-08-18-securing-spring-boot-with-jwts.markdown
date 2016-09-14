@@ -2,7 +2,7 @@
 layout: post
 title: "Securing Spring Boot with JWTs"
 description: Learn how to set up a Spring Boot project, using Java, and securing it with JWTs. 
-date: 2016-08-18 00:14
+date: 2016-09-15 00:14
 author: 
   name: Dylan Meeus
   url: http://www.twitter.com/DylanMeeus
