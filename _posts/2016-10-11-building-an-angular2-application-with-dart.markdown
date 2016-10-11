@@ -19,7 +19,7 @@ tags:
 ## Outline ##
 
 ## Angular2 introduction
-General information about Angular2, what it is and why you want to try it out
+General information about Angular2, what it is and why you want to try it out. 
 
 ## Dart introduction
 What is Dart differ from plain Javascript. Provide some resources for learning Dart and documentation.
@@ -39,6 +39,10 @@ When the user is logged in, have some options to change data about the user (nam
 
 ### Dealing with changes
 Write some information about how Angular2 deals with change detection, such as how to correctly handle data being added to the array of users. 
+
+### ASIDE: Integrating with Auth0
+Extend our application to use JWT, and manage the login with Auth0. Provide information to further reading about Auth0 and other Angular2 blogs using Auth0.
+
 
 ### Conclusion:
 How easy was it to set up Dart. Dart Versus Typescript conclusion
