@@ -64,13 +64,88 @@ environment:
 - dart_to_js_script_rewriter
 ```
 
-As Angular2 is still in beta and thus changes, it is a good idea to set the version explicitely in this file so you can be sure to have the same version as in this blog.
+As Angular2 is still in beta and thus changes, it is a good idea to set the version explicitly in this file so you can be sure to have the same version as in this blog.
 
 
-## Building a (simple) user application
-Building an application that allows a user to register (entering some information about the user) and then using the created account to log in and view the other users in the system. 
-When the user is logged in, have some options to change data about the user (name/age) to show the databinding and the updates.
-- Possible to extend with sending a message to the user
+## Building a (simple) application
+The application we are going to build will deal with github repositories. We are going to fetch data from github, but we will start building the application from the ground up. Keep in mind that you can always find the complete code on [github](https://github.com/DylanMeeus/auth0-angular2-dart). The first step to building our application is providing an app_component.dart. This will be the first file that get's loaded when the application is started and we visit the root of the website. Our HTML will just contain some navigation options for now, and a router-outler. The router is what will handle the navigation for us but we need not yet worry about that.
+
+###
+
+### Creating the app_component
+
+#### Creating the .dart file
+
+We will need to create two parts for this, an app_component.dart and a corresponding "view" which will be app_component.html. First of all we will take a look at the app_component.dart file and later we will take a look at the HTMl counterpart. It is important that the dart file is created under the lib directory, because pub will look in this directory to find dart files when we refer to them later in the development. We could actually write the HTML code inside the .dart file as well, but for separation it is better to keep these split off. The first part of such a component will need an '@Component' annotation. Let's take a look at what we can put in the @Component, and then break it down.
+
+
+```
+@Component(
+selector: 'my-app',
+templateUrl: '../web/app_component.html',
+directives: const [GithubComponent,ROUTER_DIRECTIVES],
+providers: const [GithubService,ROUTER_PROVIDERS, UserService]
+)
+```
+
+This component has several parts to it, the ones that every component will need is the 'selector' and the 'templateUrl', though 'templateUrl' could be replaced with 'template' to put the HTML in the same file. The *selector* is how we can identify our component and use it in other HTML code, as we will see later. The *templateUrl* is a link to where we can find the corresponding HTML code for this component. *Directives* are used to add some extra functionality to our component, for example other components can be included here. Finally, *providers* are used to add services to our component. Services provide some functionality as well and are often a way to share data between components.
+
+Because our app_component also wants to deal with navigation we need to add a configuration for the router. The ROUTER_DIRECTIVES and the ROUTER_PROVIDERS are what we need to work with the router. The directives provide us with the HTML tag to add the router outlet, and the provider is a service as explained earlier.
+
+```
+@RouteConfig(const[
+  const Route(path: '/public', name: 'Public', component: PublicComponent),
+  const Route(path: '/private', name: 'Private', component: PrivateComponent),
+  const Route(path: '/login', name: 'Login', component: LoginComponent),
+]
+)
+```
+
+In this router configuration, we are exposing three routes and linking then to components that we will create soon. The public and private ones for the two different ways we will interact with the github API, and finally also a login component which will deal with authentication.
+
+Once we have this set up, all that is left for our app_component.dart file is to actually include a dart class for the AppComponent. For now we can just leave this class empty as it does not need any further logic yet.
+
+```
+class AppComponent{}
+
+```
+
+#### Adding the app_component template
+In the dart component we are referring to a template via a url. The template still needs to be created and this can preferably be done in a different location as the .dart file. For example just under the 'web' directory. In this file we can put some HTML. The important thing is that here we will add the navigation components and the router-outlet, the router-outlet will later render the components that our RouteConfig is binding to. For example when the user clicks on 'Login', it will show the LoginComponent's template where the router-outlet is put.
+
+The full HTNL looks like this:
+```
+<div class="container">
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a [routerLink]="['Public']">Public</a></li>
+                    <li><a [routerLink]="['Private']">Private</a></li>
+                    <li><a [routerLink]="['Login']">Login</a></li>
+                </ul>
+                <ul class="nav navbar-nav pull-right">
+                    <li><a (click)="logout()" href="void(0)">logout</a></li>
+                </ul>
+            </div><!--/.nav-collapse -->
+            <div id="routerdiv">
+                <router-outlet></router-outlet>
+            </div>
+        </div><!--/.container-fluid -->
+    </nav>
+
+</div>
+```
+
+As you might recognize, some bootstrap classes are being used here, which we have included in the index.html file.
 
 ## Dealing with changes
 Write some information about how Angular2 deals with change detection, such as how to correctly handle data being added to the array of users. 
