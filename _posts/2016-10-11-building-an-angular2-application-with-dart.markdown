@@ -70,7 +70,53 @@ As Angular2 is still in beta and thus changes, it is a good idea to set the vers
 ## Building a (simple) application
 The application we are going to build will deal with github repositories. We are going to fetch data from github, but we will start building the application from the ground up. Keep in mind that you can always find the complete code on [github](https://github.com/DylanMeeus/auth0-angular2-dart). The first step to building our application is providing an app_component.dart. This will be the first file that get's loaded when the application is started and we visit the root of the website. Our HTML will just contain some navigation options for now, and a router-outler. The router is what will handle the navigation for us but we need not yet worry about that.
 
-###
+###  Creating the main files
+
+In our application we will have two main files, these can be thought of as the start of our application and will be called 'main.dart' and 'index.html' respectively.
+The index.html will be the first file that our angular app will present. This is hooked up to a main.dart file where we can bootstrap the services that we need. The files are rather small for our project, so in the main.dart file we just have a main method and a browserclient.
+
+```
+BrowserClient newBrowserClient() => new BrowserClient();
+
+void main(){
+  bootstrap(
+      AppComponent,
+      const [
+        const Provider(BrowserClient, useFactory: newBrowserClient, deps: const [])
+      ],
+        [UserService], [Router]
+  );
+}
+```
+
+Apart from that we have an index.html component which contains some scripts and we will also include bootstrap here to present it with a bit more of a pretty layout.
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Angular2 Dart example</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script defer src="main.dart" type="application/dart"></script>
+    <script defer src="packages/browser/dart.js"></script>
+
+    <base href="/">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <!-- End bootstrap CDN -->
+</head>
+<body>
+<my-app>Loading...</my-app>
+</body>
+</html>
+```
+
 
 ### Creating the app_component
 
@@ -113,7 +159,7 @@ class AppComponent{}
 #### Adding the app_component template
 In the dart component we are referring to a template via a url. The template still needs to be created and this can preferably be done in a different location as the .dart file. For example just under the 'web' directory. In this file we can put some HTML. The important thing is that here we will add the navigation components and the router-outlet, the router-outlet will later render the components that our RouteConfig is binding to. For example when the user clicks on 'Login', it will show the LoginComponent's template where the router-outlet is put.
 
-The full HTNL looks like this:
+The full HTML looks like this:
 ```
 <div class="container">
     <nav class="navbar navbar-default">
@@ -135,17 +181,17 @@ The full HTNL looks like this:
                 <ul class="nav navbar-nav pull-right">
                     <li><a (click)="logout()" href="void(0)">logout</a></li>
                 </ul>
-            </div><!--/.nav-collapse -->
+            </div>
             <div id="routerdiv">
                 <router-outlet></router-outlet>
             </div>
-        </div><!--/.container-fluid -->
+        </div>
     </nav>
 
 </div>
 ```
 
-As you might recognize, some bootstrap classes are being used here, which we have included in the index.html file.
+The special thing about this HTML are the '<a>' tags, for example: '<a [routerLink]="['Login']">Login</a>'. The '[routerLink]=..' part is where we pass data from the routeConfig to the routerLink. Apart from this there is also a '(click)="logout()"' inside this HTML, which is a binding from the HTML to a method inside our dart component. We have not yet created this dart component but we will do that once we are dealing with the login.
 
 ## Dealing with changes
 Write some information about how Angular2 deals with change detection, such as how to correctly handle data being added to the array of users. 
